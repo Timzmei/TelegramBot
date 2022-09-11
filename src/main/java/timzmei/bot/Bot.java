@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.pengrad.telegrambot.TelegramBot;
 import com.pengrad.telegrambot.UpdatesListener;
 import com.pengrad.telegrambot.model.Message;
+import com.pengrad.telegrambot.model.PhotoSize;
 import com.pengrad.telegrambot.model.Update;
 import com.pengrad.telegrambot.model.request.ForceReply;
 import com.pengrad.telegrambot.model.request.ParseMode;
@@ -36,27 +37,89 @@ public class Bot {
 
     private void process(Update update) throws IOException {
 
+        System.out.println("update");
         // Send messages
         Message message = update.message();
 
+        System.out.println(update);
 
         BaseRequest request = null;
 
         if(message != null) {
             long chatId = message.chat().id();
 
-            if (message.text().toLowerCase().contains("какая погода")) {
-                request = new SendMessage(chatId, new Weather().getWeather());
-            } else if (message.text().toLowerCase().contains("работа") || message.text().toLowerCase().contains("работу")) {
-                request = getHHRequest(request, chatId, message);
-            } else if (message.text().toLowerCase().contains("когда") || message.text().toLowerCase().contains("зачем") || message.text().toLowerCase().contains("почему") || message.text().toLowerCase().contains("что") ||message.text().toLowerCase().contains("кто")){
-                if (message.text().toLowerCase().contains("?")) {
-                    request = new SendMessage(chatId, "хороший вопрос...").replyToMessageId(message.messageId());
-
-
+            if (message.replyToMessage() != null) {
+                if (message.replyToMessage().from().id() == 1031731840) {
+                    request = new SendMessage(chatId, "Круто, со мной разговаривают...))). Люблю тебя, " + message.from().username() + "! \uD83D\uDE18\uD83D\uDE18\uD83D\uDE18").replyToMessageId(message.messageId());
                 }
-            } else if (message.text().toLowerCase().contains("привет") || message.text().toLowerCase().contains("здравствуйте")){
-                request = new SendMessage(chatId, "Привет, " + message.from().username() + "!") .parseMode(ParseMode.Markdown ).replyToMessageId(message.messageId());
+            }
+
+            if (message.text() != null) {
+
+                if (message.text().toLowerCase().contains("какая погода")) {
+                    request = new SendMessage(chatId, new Weather().getWeather());
+                } else if (message.text().toLowerCase().contains("работа") || message.text().toLowerCase().contains("работу")) {
+                    request = getHHRequest(request, chatId, message);
+                } else if (message.text().toLowerCase().contains("когда") || message.text().toLowerCase().contains("зачем") || message.text().toLowerCase().contains("почему") || message.text().toLowerCase().contains("что") || message.text().toLowerCase().contains("кто")) {
+                    if (message.text().toLowerCase().contains("?")) {
+                        request = new SendMessage(chatId, "хороший вопрос...").replyToMessageId(message.messageId());
+
+
+                    }
+                } else if (message.text().toLowerCase().contains("привет") || message.text().toLowerCase().contains("здравствуйте")) {
+                    request = new SendMessage(chatId, "Привет, " + message.from().username() + "!").parseMode(ParseMode.Markdown).replyToMessageId(message.messageId());
+                }
+            }
+
+            if (message.photo() != null) {
+                System.out.println("photo: " + message.photo());
+                System.out.println(message.photo().toString());
+                request = new SendMessage(chatId, "Клевая картинка");
+
+
+            }
+
+            if (message.video() != null) {
+                System.out.println("video: " + message.video());
+                System.out.println(message.video().fileName());
+                request = new SendMessage(chatId, "Ой, видосик))");
+
+            }
+
+            if (message.animation() != null) {
+                System.out.println("animation: " + message.animation().fileName());
+                System.out.println(message.animation().mimeType());
+                request = new SendMessage(chatId, "Ой, анимашка))");
+
+
+            }
+
+            if (message.audio() != null) {
+                System.out.println("audio: " + message.audio().fileName());
+                System.out.println(message.audio().title());
+                request = new SendMessage(chatId, "Щас послушаю..))");
+
+            }
+
+            if (message.contact() != null) {
+                System.out.println("contact: " + message.contact());
+                System.out.println(message.contact().firstName());
+                request = new SendMessage(chatId, "Кантакт сохранен");
+
+            }
+
+            if (message.document() != null) {
+                System.out.println("document: " + message.document());
+                System.out.println(message.document().fileName());
+                request = new SendMessage(chatId, "файл сохранен");
+
+            }
+
+            if (message.voice() != null) {
+                System.out.println("voice: " + message.voice());
+                System.out.println(message.voice().mimeType());
+                request = new SendMessage(chatId, "голосовой сообщение принято");
+
             }
         }
 
