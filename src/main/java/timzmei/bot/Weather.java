@@ -8,7 +8,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
-import java.net.ProtocolException;
 import java.net.URL;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -17,30 +16,59 @@ import java.util.HashMap;
 
 public class Weather {
 
+    private final String picSunny = "☀️";
+    private final String picPartlySunny = "⛅️";
+    private final String picCloudy = "☁️";
+    private final String picSmallRain = "\uD83C\uDF26";
+    private final String picRain = "\uD83C\uDF27";
+    private final String picRainLight = "⛈";
+    private final String picSnow = "\uD83C\uDF28";
+
     private URL url;
     private HttpURLConnection con;
+    private double lat;
+    private double lon;
 
-    public Weather() throws IOException {
-        url = new URL("https://api.openweathermap.org/data/2.5/onecall?" +
-                "lat=54.775002&" +
-                "lon=56.037498&" +
-                "exclude=minutely,hourly,alerts&" +
-                "appid=5bb528d90985eeb90ef1fea3021e44af&" +
-                "units=metric&" +
-                "lang=ru");
-        con  = (HttpURLConnection) url.openConnection();
+    private static final String API_KEY = "5bb528d90985eeb90ef1fea3021e44af";
+
+    public Weather(double lat, double lon) {
+        this.lat = lat;
+        this.lon = lon;
+
     }
 
-    public String getWeather() throws ProtocolException {
+    public String getAddress() throws IOException {
+        url = new URL("http://api.openweathermap.org/geo/1.0/reverse?" +
+                "lat=" + lat +
+                "&lon=" + lon +
+                "&limit=5" +
+                "&appid=" + API_KEY);
+        JsonArray convertedObject = new Gson().fromJson(getOWMResponse(), JsonArray.class);
+        String address = convertedObject.getAsJsonArray().get(0).getAsJsonObject().get("local_names").getAsJsonObject().get("ru").toString();
+        return address;
+    }
+
+    public String getWeather(String location) throws IOException {
+        url = new URL("https://api.openweathermap.org/data/2.5/onecall?" +
+                "lat=" + lat +
+                "&lon=" + lon +
+                "&exclude=minutely,hourly,alerts&" +
+                "appid=" + API_KEY +
+                "&units=metric&" +
+                "lang=ru");
+        JsonObject convertedObject = new Gson().fromJson(getOWMResponse(), JsonObject.class);
+
+        return "Сегодня в " + location + " " + printWeather(convertedObject);
+    }
+
+    private String getOWMResponse() throws IOException {
+        con  = (HttpURLConnection) url.openConnection();
         con.setRequestMethod("GET");
         con.setRequestProperty("Content-Type", "application/json");
 
         String json = getResponse(con);
         con.disconnect();
-        JsonObject convertedObject = new Gson().fromJson(json, JsonObject.class);
-//        printWeather(convertedObject);
-
-        return printWeather(convertedObject);
+        return json;
     }
 
 
@@ -60,35 +88,15 @@ public class Weather {
     }
 
     public String printWeather(JsonObject weatherResponse){
-        String picSunny = "☀️";
-        String picPartlySunny = "⛅️";
-        String picCloudy = "☁️";
-        String picSmallRain = "\uD83C\uDF26";
-        String picRain = "\uD83C\uDF27";
-        String picRainLight = "⛈";
-        String picSnow = "\uD83C\uDF28";
 
-
-
-
-        System.out.printf("Координаты города Уфы: с.ш. %s, в.д. %s\n", weatherResponse.get("lat").toString(), weatherResponse.get("lon").toString());
         JsonObject currentWeather = weatherResponse.getAsJsonObject("current");
         String currentTemp = currentWeather.get("temp").toString();
         String crrntTempFl = currentWeather.get("feels_like").toString();
         String crntDescription = currentWeather.getAsJsonArray("weather").get(0).getAsJsonObject().get("description").toString().replaceAll("\"", "");
         JsonArray daily = weatherResponse.get("daily").getAsJsonArray();
 
-//        System.out.println(weatherResponse);
+        return crntDescription + "\n темп-ра " + (Double.parseDouble(currentTemp) > 0 ? "+" + currentTemp : "-" + currentTemp) + " ощущается: " + (Double.parseDouble(crrntTempFl) > 0 ? "+" + crrntTempFl : "-" + crrntTempFl) + "\nВ следующие дни:\n" + getDaylyWeather(daily);
 
-        double diffNightMorn = 30d;
-        long pressureDay = 0;
-        long diffDay = 0;
-        int pressure = 0;
-
-        return "Сегодня: " + crntDescription + "\n темп-ра " + (Double.parseDouble(currentTemp) > 0 ? "+" + currentTemp : "-" + currentTemp) + " ощущается: " + (Double.parseDouble(crrntTempFl) > 0 ? "+" + crrntTempFl : "-" + crrntTempFl) + "\nВ следующие дни\n" + getDaylyWeather(daily);
-
-//        System.out.printf("Максимальное давление за предстоящие 5 дней (включая текущий): %s, дата: %s\n", pressure, Instant.ofEpochMilli(pressureDay * 1000).atZone(ZoneId.of("UTC")).toLocalDate());
-//        System.out.printf("День с минимальной разницей между ночной и утренней температурой : %.2f, дата: %s\n", diffNightMorn, Instant.ofEpochMilli(diffDay * 1000).atZone(ZoneId.of("UTC")).toLocalDate());
     }
 
     private String getDaylyWeather(JsonArray daily) {

@@ -11,9 +11,11 @@ import com.pengrad.telegrambot.model.request.ParseMode;
 import com.pengrad.telegrambot.request.BaseRequest;
 import com.pengrad.telegrambot.request.SendMessage;
 import com.pengrad.telegrambot.response.BaseResponse;
+import jakarta.xml.soap.SOAPException;
 import timzmei.bot.hh.HeadHanter;
 import timzmei.bot.hh.Vacancies;
 
+import javax.xml.transform.TransformerException;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -35,13 +37,12 @@ public class Bot {
 
     }
 
-    private void process(Update update) throws IOException {
+    private void process(Update update) throws IOException, SOAPException, TransformerException {
 
-        System.out.println("update");
         // Send messages
         Message message = update.message();
 
-        System.out.println(update);
+//        System.out.println(update);
 
         BaseRequest request = null;
 
@@ -57,7 +58,7 @@ public class Bot {
             if (message.text() != null) {
 
                 if (message.text().toLowerCase().contains("какая погода")) {
-                    request = new SendMessage(chatId, new Weather().getWeather());
+                    request = new SendMessage(chatId, new Weather(54.775002,56.037498).getWeather("Уфе"));
                 } else if (message.text().toLowerCase().contains("работа") || message.text().toLowerCase().contains("работу")) {
                     request = getHHRequest(request, chatId, message);
                 } else if (message.text().toLowerCase().contains("когда") || message.text().toLowerCase().contains("зачем") || message.text().toLowerCase().contains("почему") || message.text().toLowerCase().contains("что") || message.text().toLowerCase().contains("кто")) {
@@ -68,57 +69,71 @@ public class Bot {
                     }
                 } else if (message.text().toLowerCase().contains("привет") || message.text().toLowerCase().contains("здравствуйте")) {
                     request = new SendMessage(chatId, "Привет, " + message.from().username() + "!").parseMode(ParseMode.Markdown).replyToMessageId(message.messageId());
+                } else if (message.text().toLowerCase().contains("почта") || message.text().toLowerCase().contains("почту")) {
+                    String barCode = message.text().replaceAll("почта", "").replaceAll("почту", "").replaceAll("Почта", "").replaceAll("Почту", "").trim();
+
+                    //                    System.out.println(new TrackingPost("RA644000001RU").start());
+                    request = new SendMessage(chatId, new TrackingPost(barCode).start()).replyToMessageId(message.messageId());
                 }
             }
+//            44393853059672
 
             if (message.photo() != null) {
-                System.out.println("photo: " + message.photo());
-                System.out.println(message.photo().toString());
+//                System.out.println("photo: " + message.photo());
+//                System.out.println(message.photo().toString());
                 request = new SendMessage(chatId, "Клевая картинка");
 
 
             }
 
             if (message.video() != null) {
-                System.out.println("video: " + message.video());
-                System.out.println(message.video().fileName());
+//                System.out.println("video: " + message.video());
+//                System.out.println(message.video().fileName());
                 request = new SendMessage(chatId, "Ой, видосик))");
 
             }
 
             if (message.animation() != null) {
-                System.out.println("animation: " + message.animation().fileName());
-                System.out.println(message.animation().mimeType());
+//                System.out.println("animation: " + message.animation().fileName());
+//                System.out.println(message.animation().mimeType());
                 request = new SendMessage(chatId, "Ой, анимашка))");
 
 
             }
 
             if (message.audio() != null) {
-                System.out.println("audio: " + message.audio().fileName());
-                System.out.println(message.audio().title());
+//                System.out.println("audio: " + message.audio().fileName());
+//                System.out.println(message.audio().title());
                 request = new SendMessage(chatId, "Щас послушаю..))");
 
             }
 
             if (message.contact() != null) {
-                System.out.println("contact: " + message.contact());
-                System.out.println(message.contact().firstName());
+//                System.out.println("contact: " + message.contact());
+//                System.out.println(message.contact().firstName());
                 request = new SendMessage(chatId, "Кантакт сохранен");
 
             }
 
             if (message.document() != null) {
-                System.out.println("document: " + message.document());
-                System.out.println(message.document().fileName());
+//                System.out.println("document: " + message.document());
+//                System.out.println(message.document().fileName());
                 request = new SendMessage(chatId, "файл сохранен");
 
             }
 
             if (message.voice() != null) {
-                System.out.println("voice: " + message.voice());
-                System.out.println(message.voice().mimeType());
-                request = new SendMessage(chatId, "голосовой сообщение принято");
+//                System.out.println("voice: " + message.voice());
+//                System.out.println(message.voice().mimeType());
+                request = new SendMessage(chatId, "голосовое сообщение принято");
+
+            }
+
+            if (message.location() != null) {
+//                System.out.println("location: " + message.location());
+//                System.out.println(message.location());
+                request = new SendMessage(chatId, "Прогноз погоды\n" +
+                        new Weather(message.location().latitude(),message.location().longitude()).getWeather(new Weather(message.location().latitude(), message.location().longitude()).getAddress())).replyToMessageId(message.messageId());
 
             }
         }
@@ -155,7 +170,7 @@ public class Bot {
         updates.forEach(update -> {
             try {
                 process(update);
-            } catch (IOException e) {
+            } catch (IOException | SOAPException | TransformerException e) {
                 throw new RuntimeException(e);
             }
         });
