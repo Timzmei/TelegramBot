@@ -1,14 +1,12 @@
-package timzmei.bot;
+package timzmei.bot.post;
 
 import jakarta.xml.soap.*;
-import org.jetbrains.annotations.NotNull;
 
 import javax.xml.transform.*;
 import javax.xml.transform.stream.StreamResult;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.StringWriter;
 
 public class TrackingPost {
     /*Данный код создает запрос для получения информации о
@@ -83,7 +81,6 @@ public class TrackingPost {
         return new XMLParser().parse(bais);
     }
 
-    @NotNull
     private SOAPMessage createMessage() throws SOAPException {
         //Cоздаем сообщение
         MessageFactory messageFactory = MessageFactory.newInstance("SOAP 1.2 Protocol");

@@ -1,4 +1,4 @@
-package timzmei.bot;
+package timzmei.bot.post;
 
 import org.jdom2.*;
 

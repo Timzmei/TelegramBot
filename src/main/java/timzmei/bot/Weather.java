@@ -28,13 +28,29 @@ public class Weather {
     private HttpURLConnection con;
     private double lat;
     private double lon;
+    private HashMap<String, String> iconMap;
 
     private static final String API_KEY = "5bb528d90985eeb90ef1fea3021e44af";
 
     public Weather(double lat, double lon) {
         this.lat = lat;
         this.lon = lon;
+        
+        iconMap = new HashMap<>();
+        fillMap();
 
+    }
+
+    private void fillMap() {
+        iconMap.put("01", "☀️");
+        iconMap.put("02","⛅️");
+        iconMap.put("03","☁️");
+        iconMap.put("04","☁️");
+        iconMap.put("10","\uD83C\uDF26");
+        iconMap.put("09","\uD83C\uDF27");
+        iconMap.put("11","⛈");
+        iconMap.put("13","\uD83C\uDF28");
+        iconMap.put("50","🌫");
     }
 
     public String getAddress() throws IOException {
@@ -52,7 +68,7 @@ public class Weather {
         url = new URL("https://api.openweathermap.org/data/2.5/onecall?" +
                 "lat=" + lat +
                 "&lon=" + lon +
-                "&exclude=minutely,hourly,alerts&" +
+                "&exclude=minutely,alerts&" +
                 "appid=" + API_KEY +
                 "&units=metric&" +
                 "lang=ru");
@@ -90,28 +106,21 @@ public class Weather {
     public String printWeather(JsonObject weatherResponse){
 
         JsonObject currentWeather = weatherResponse.getAsJsonObject("current");
-        String currentTemp = currentWeather.get("temp").toString();
-        String crrntTempFl = currentWeather.get("feels_like").toString();
+        String picNum = currentWeather.getAsJsonArray("weather").get(0).getAsJsonObject().get("icon").toString().replaceAll("\\D", "");
+        String currentTemp = currentWeather.get("temp").toString().replaceAll("\\.[\\d]*", ""); // температура
+        String crrntTempFl = currentWeather.get("feels_like").toString().replaceAll("\\.[\\d]*", ""); // температура по ощущениям
+        String humidity = currentWeather.get("humidity").toString(); //влажность
         String crntDescription = currentWeather.getAsJsonArray("weather").get(0).getAsJsonObject().get("description").toString().replaceAll("\"", "");
         JsonArray daily = weatherResponse.get("daily").getAsJsonArray();
+        JsonArray hourly = weatherResponse.get("hourly").getAsJsonArray();
 
-        return crntDescription + "\n темп-ра " + (Double.parseDouble(currentTemp) > 0 ? "+" + currentTemp : "-" + currentTemp) + " ощущается: " + (Double.parseDouble(crrntTempFl) > 0 ? "+" + crrntTempFl : "-" + crrntTempFl) + "\nВ следующие дни:\n" + getDaylyWeather(daily);
+        return crntDescription + " " + iconMap.get(picNum) + "\n темп-ра " + getSignTemp(currentTemp) + " ощущается как: " + getSignTemp(crrntTempFl) + "\nВ следующие дни:\n" + getDaylyWeather(daily);
 
     }
 
     private String getDaylyWeather(JsonArray daily) {
 
-        HashMap<String, String> iconMap = new HashMap<>();
-
-        iconMap.put("01", "☀️");
-        iconMap.put("02","⛅️");
-        iconMap.put("03","☁️");
-        iconMap.put("04","☁️");
-        iconMap.put("10","\uD83C\uDF26");
-        iconMap.put("09","\uD83C\uDF27");
-        iconMap.put("11","⛈");
-        iconMap.put("13","\uD83C\uDF28");
-        iconMap.put("50","🌫");
+        
         String daylyWeather = "";
 
         for (int i = 0; i < 5; i++){
@@ -123,10 +132,16 @@ public class Weather {
 
 //            System.out.println(picNum);
             String date = Instant.ofEpochMilli(dayObject.get("dt").getAsLong() * 1000).atZone(ZoneId.of("UTC")).toLocalDate().format(DateTimeFormatter.ofPattern("EE dd.MM"));
-            String tempMax = dayObject.getAsJsonObject("temp").get("max").toString();
-            daylyWeather = daylyWeather.concat(date + iconMap.get(picNum) + (Double.parseDouble(tempMax) > 0 ? "+" + tempMax : "-" + tempMax) + "\n");
+            String tempMax = dayObject.getAsJsonObject("temp").get("max").toString().replaceAll("\\.[\\d]*", "");
+            String tempMin = dayObject.getAsJsonObject("temp").get("min").toString().replaceAll("\\.[\\d]*", "");
+
+            daylyWeather = daylyWeather.concat(date + " " + iconMap.get(picNum) + " " + getSignTemp(tempMin) + "..." + getSignTemp(tempMax) + "\n");
 
         }
         return daylyWeather;
+    }
+
+    private static String getSignTemp(String temp) {
+        return Double.parseDouble(temp) > 0 ? "+" + temp : "-" + temp;
     }
 }
